@@ -1,10 +1,11 @@
+import logging
+import time
+from typing import Any, Dict, Literal, Optional
+
 import pandas as pd
 import requests
-from typing import Optional, Dict, Any
-import time
-from typing import Literal
+
 from config import API_KEYS, BASE_URLS
-import logging
 
 logger = logging.getLogger(__name__)
 

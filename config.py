@@ -1,14 +1,9 @@
-from typing import TypedDict
-from dotenv import load_dotenv
 import os
+from typing import TypedDict
+
+from dotenv import load_dotenv
 
 load_dotenv()
-
-
-class ApiKeys(TypedDict):
-    Analytics_Statistics_API_KEY: str
-    Content_Marketplace_API_KEY: str
-
 
 API_KEYS = {
     'Analytics_Statistics_API_KEY': os.getenv('ANALYTICS_STATISTICS_API_KEY'),

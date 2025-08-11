@@ -1,5 +1,6 @@
+from typing import Any, Dict
+
 import pandas as pd
-from typing import Dict, Any
 
 
 def convert_cards_list_to_df_for_funnel(cards_list: Dict[str, Any]) -> pd.DataFrame:

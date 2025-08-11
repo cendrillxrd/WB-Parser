@@ -1,5 +1,7 @@
-import pandas as pd
 from typing import Literal
+
+import pandas as pd
+
 from utils.date_helpers import get_today_date
 
 
@@ -98,6 +100,6 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
                                'Остаток FBS': stock['FBS'],
                                'Остаток FBW': stock['FBW']})
     stocks = pd.DataFrame(stocks_lst)
-    stocks = stocks[(stocks['Остаток FBS'] > 0) | stocks['Остаток FBW'] > 0]
+    stocks = stocks[(stocks['Остаток FBS'] > 0) | (stocks['Остаток FBW'] > 0)]
     stocks['Дата'] = get_today_date()
     return stocks

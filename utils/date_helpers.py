@@ -26,4 +26,11 @@ def get_last_two_months() -> tuple[str, str, str, str]:
 
 
 def get_week_number() -> int:
+    """Возвращает номер недели."""
     return datetime.now().isocalendar()[1]
+
+
+def is_monday() -> bool:
+    """Возвращает True, если сегодня понедельник"""
+    if datetime.now().isoweekday() == 1:
+        return True
