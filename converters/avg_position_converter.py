@@ -7,7 +7,7 @@ def convert_get_avg_position_to_df(get_avg_position_result: list[dict], period: 
     """Преобразует данные о средней позиции в DataFrame."""
     df = pd.DataFrame(get_avg_position_result)
     assigned_df = df.assign(avgPosition=df['avgPosition'].apply(lambda x: x['current']))
-    cleaned_df = assigned_df[['nmId', 'avgPosition']]
+    cleaned_df = assigned_df[['nmId', 'avgPosition']].copy()
     match period:
         case 'm':
             cleaned_df.rename({'nmId': 'Артикул WB',

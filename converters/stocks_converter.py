@@ -2,7 +2,7 @@ from typing import Literal
 
 import pandas as pd
 
-from utils.date_helpers import get_today_date
+from utils.date_helpers import get_today_date, get_week_number
 
 
 def convert_get_stocks_result_to_df(new_get_stocks_result: list[dict],
@@ -16,9 +16,9 @@ def convert_get_stocks_result_to_df(new_get_stocks_result: list[dict],
         assigned_df_2 = assigned_df.assign(toClientCount=df['metrics'].apply(lambda x: x['toClientCount']),
                                            fromClientCount=df['metrics'].apply(lambda x: x['fromClientCount'])
                                            )
-        corrected_df = assigned_df_2[['nmID', 'stockCount', 'toClientCount', 'fromClientCount', 'currentPrice']]
+        corrected_df = assigned_df_2[['nmID', 'stockCount', 'toClientCount', 'fromClientCount', 'currentPrice']].copy()
     else:
-        corrected_df = assigned_df[['nmID', 'stockCount', 'currentPrice']]
+        corrected_df = assigned_df[['nmID', 'stockCount', 'currentPrice']].copy()
 
     if stock_type == '':
         corrected_df.rename({'nmID': 'Артикул WB',
@@ -102,4 +102,5 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
     stocks = pd.DataFrame(stocks_list)
     stocks = stocks[(stocks['Остаток FBS'] > 0) | (stocks['Остаток FBW'] > 0)]
     stocks['Дата'] = get_today_date()
+    stocks['Неделя'] = get_week_number()
     return stocks

@@ -21,8 +21,8 @@ def get_last_two_months() -> tuple[str, str, str, str]:
     return (
         current_start.strftime('%Y-%m-%d'),
         current_end.strftime('%Y-%m-%d'),
-        past_end.strftime('%Y-%m-%d'),
-        past_start.strftime('%Y-%m-%d')
+        past_start.strftime('%Y-%m-%d'),
+        past_end.strftime('%Y-%m-%d')
     )
 
 

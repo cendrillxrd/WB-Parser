@@ -328,6 +328,7 @@ class WildberriesAPIClient:
         antifreeze = 1000
 
         while groups and antifreeze:
+            antifreeze -= 1
             items = groups[-1]['items']
             offset += LIMIT_AVG_POS
             results.extend(items)

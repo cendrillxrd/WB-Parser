@@ -69,8 +69,9 @@ class WildberriesDataCollector:
 
     def get_avg_pos(self, nmIDs: list, period: Literal['m', 't']) -> pd.DataFrame:
         """Получение и преобразование данных о средней позиции в поиске."""
-        avg_pos_list = self.api.get_avg_position(self.todayDate, self.todayDate, self.yesterdayDate,
-                                                 self.yesterdayDate, nmIDs)
+        if period == 't':
+            avg_pos_list = self.api.get_avg_position(self.todayDate, self.todayDate, self.yesterdayDate,
+                                                     self.yesterdayDate, nmIDs)
         if period == 'm':
             current_start_date, current_end_date, past_start_date, past_end_date = get_last_two_months()
             avg_pos_list = self.api.get_avg_position(current_start_date, current_end_date, past_start_date,
@@ -107,7 +108,7 @@ class WildberriesDataCollector:
                             resport_type: Literal['stocks', 'funnel']) -> Optional[pd.DataFrame]:
         """Создание отчета по воронке продаж или остаткам."""
         for temp in range(REPORT_TEMP):
-            # id = '71e96117-228d-4331-8a76-d0d7dd4b52c1'
+            # id = 'e209b833-4d75-4b13-b56f-1dbfe06e0acc'
             id = str(uuid.uuid4())
             pd.DataFrame({'ID': [id], 'date': start_date_time}).to_csv(f'ids_{resport_type}.csv',
                                                                        mode='a',
@@ -118,7 +119,6 @@ class WildberriesDataCollector:
                 response = self.api.get_report_response(id)
                 zip_file = io.BytesIO(response.content)
                 report = zip_file_converter_to_df(zip_file, resport_type)
-                report['Неделя'] = get_week_number()
                 print(f'Отчет загружен {start_date_time}')
                 return report
             else:
@@ -135,6 +135,7 @@ class WildberriesDataCollector:
     def get_funnel_fbw_fbs_avg_pos_characteristic(self) -> pd.DataFrame:
         """Получение итоговой таблицы по воронке продаж."""
         funnel = self.get_report_response(self.todayDate, self.todayDate, 'funnel')
+        funnel['Неделя'] = get_week_number()
 
         nmIDs = funnel['Артикул WB'].unique().tolist()
         fbs_df = self.get_stocks_FBS_stats(nmIDs)
