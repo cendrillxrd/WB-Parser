@@ -1,9 +1,11 @@
+import os
 import zipfile
+from typing import Optional
 
 import pandas as pd
 
 
-def zip_file_converter_to_df(zip_file, reportType) -> pd.DataFrame:
+def zip_file_converter_to_df(zip_file, reportType) -> Optional[pd.DataFrame]:
     """Преобразует архивированный csv файл в DataFrame."""
     with zipfile.ZipFile(zip_file) as z:
         csv_files = [f for f in z.namelist() if f.endswith('.csv')]
@@ -38,9 +40,8 @@ def zip_file_converter_to_df(zip_file, reportType) -> pd.DataFrame:
 
 
 def is_csv_empty(file_path) -> bool:
-    """Проверяет, пустой ли файл"""
-    try:
-        df = pd.read_csv(file_path, encoding='cp1251')
-        return df.empty
-    except FileNotFoundError:
+    """Проверяет, пустой ли файл."""
+    if not os.path.exists(file_path):
         return True
+    df = pd.read_csv(file_path, encoding='cp1251')
+    return df.empty

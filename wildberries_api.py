@@ -6,8 +6,14 @@ import pandas as pd
 import requests
 
 from config import API_KEYS, BASE_URLS
+from utils.api_helpers import update_params_for_pagination
 
 logger = logging.getLogger(__name__)
+LIMIT_CARDS = 100
+LIMIT_STOCKS = 1000
+LIMIT_AVG_POS = 1000
+TIME_SLEEP_CARDS = 0.7
+TIME_SLEEP_REPORTS = 20
 
 
 class WildberriesAPIClient:
@@ -16,7 +22,6 @@ class WildberriesAPIClient:
         self.api_key = API_KEYS
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
-        self.LIMIT_cards = 100
 
     def _make_request(
             self,
@@ -27,19 +32,19 @@ class WildberriesAPIClient:
             params: Optional[Dict] = None,
             payload: Optional[Dict] = None,
             retries: int = 3) -> Optional[Dict]:
+        """Делает запрос по API."""
         url = f'{self.base_url[url_key]}{endpoint}'
 
         for attempt in range(retries):
+            self.session.headers.update({'Authorization': self.api_key[api_type]})
+            response = self.session.request(
+                method=method,
+                url=url,
+                params=params,
+                json=payload,
+                timeout=10
+            )
             try:
-                self.session.headers.update({'Authorization': self.api_key[api_type]})
-                response = self.session.request(
-                    method=method,
-                    url=url,
-                    params=params,
-                    json=payload,
-                    timeout=10
-                )
-
                 response.raise_for_status()
                 if self.session.headers['Content-Type'] == 'application/zip':
                     return response
@@ -65,29 +70,13 @@ class WildberriesAPIClient:
 
         return None
 
-    def _update_params_for_pagination(self, response):
-        updated_at, nmID, total = response['cursor'].values()
-        payload = {
-            'settings': {
-                'cursor': {
-                    'limit': self.LIMIT_cards,
-                    'updatedAt': updated_at,
-                    'nmID': nmID
-                },
-                'filter': {
-                    'withPhoto': -1
-                }
-            }
-        }
-        return payload, total
-
     def get_cards_list(self) -> Dict[str, Any]:
+        """Получение карточек товаров."""
         endpoint = '/content/v2/get/cards/list'
-        temp = 100
         payload = {
             'settings': {
                 'cursor': {
-                    'limit': self.LIMIT_cards
+                    'limit': LIMIT_CARDS
                 },
                 'filter': {
                     'withPhoto': -1
@@ -100,28 +89,32 @@ class WildberriesAPIClient:
                                       endpoint=endpoint,
                                       payload=payload)
 
-        payload, total = self._update_params_for_pagination(response)
-        while total >= self.LIMIT_cards:
-            time.sleep(0.7)
+        payload, total = update_params_for_pagination(response, LIMIT_CARDS)
+        loaded_cards = LIMIT_CARDS
+        print(loaded_cards)
+        while total >= LIMIT_CARDS:
+            time.sleep(TIME_SLEEP_CARDS)
             resp = self._make_request(method='POST',
                                       api_type='Content_Marketplace_API_KEY',
                                       url_key='content',
                                       endpoint=endpoint,
                                       payload=payload)
-            payload, total = self._update_params_for_pagination(resp)
+            payload, total = update_params_for_pagination(resp, LIMIT_CARDS)
             response['cards'] += resp['cards']
 
-            temp += total
-            print(temp)
+            loaded_cards += total
+            print(loaded_cards)
         return response['cards']
 
     def get_nmIds(self) -> list:
+        """Получение артикулов WB."""
         cards_list_data = self.get_cards_list()
         df = pd.DataFrame(cards_list_data)
         cards_nmID_lst = df['nmID'].unique().to_list()
         return cards_nmID_lst
 
     def get_barcodes(self) -> list:
+        """Получение баркодов"""
         product_cards = self.get_cards_list()
         barcodes = []
         count = 0
@@ -134,35 +127,8 @@ class WildberriesAPIClient:
                 count += 1
         return barcodes
 
-    # def get_promotions(self, startDateTime, endDateTime):
-    #     endpoint = '/api/v1/calendar/promotions'
-    #     params = {
-    #         'startDateTime': startDateTime,
-    #         'endDateTime': endDateTime,
-    #         'allPromo': True,
-    #     }
-    #     response = self._make_request(method='GET',
-    #                                   api_type='API_KEY3',
-    #                                   url_key='dp-calendar',
-    #                                   params=params,
-    #                                   endpoint=endpoint)
-    #     promotions = response['data']['promotions']
-    #     return promotions
-    #
-    # def get_active_promotions_ids(self, startDateTime, endDateTime):
-    #     df = self.get_promotions(startDateTime, endDateTime)
-    #     df = pd.DataFrame(df)
-    #     df['startDateTime'] = pd.to_datetime(df['startDateTime'])
-    #     df['endDateTime'] = pd.to_datetime(df['endDateTime'])
-    #
-    #     now = pd.to_datetime(datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
-    #
-    #     # Фильтрация активных акций
-    #     active_promotions = df[(df['startDateTime'] <= now) & (df['endDateTime'] >= now)]
-    #     id_active_promotions = active_promotions['id'].to_list()
-    #     return id_active_promotions
-
     def get_reports_list(self, ids: list):
+        """Получение списка отчетов."""
         endpoint = '/api/v2/nm-report/downloads'
         params = {
             'filter[downloadIds]': ids
@@ -174,7 +140,8 @@ class WildberriesAPIClient:
                                       endpoint=endpoint)
         return response
 
-    def get_report_response(self, id):
+    def get_report_response(self, id: str):
+        """Получение отчета."""
         self.session.headers.update({
             'Content-Type': 'application/zip'
         })
@@ -188,7 +155,8 @@ class WildberriesAPIClient:
         })
         return response
 
-    def retry_create_report(self, id):
+    def retry_create_report(self, id: str):
+        """Повторная генерация отчета"""
         endpoint = '/api/v2/nm-report/downloads/retry'
         payload = {
             "downloadId": id
@@ -199,60 +167,99 @@ class WildberriesAPIClient:
                            payload=payload,
                            endpoint=endpoint)
 
-    def create_report(self, id, start_date, end_date, report_type: Literal['stocks', 'funnel'],
+    def create_report(self, id: str, start_date: str, end_date: str, report_type: Literal['stocks', 'funnel'],
                       skipDeletedNm=True):
-        match report_type:
-            case 'stocks':
-                report_type = 'STOCK_HISTORY_REPORT_CSV'
-                payload = {
-                    'id': id,
-                    'reportType': report_type,
-                    'params': {
-                        'currentPeriod': {
-                            'start': start_date,
-                            'end': end_date,
-                        },
-                        'skipDeletedNm': skipDeletedNm,
-                        'stockType': '',
-                        'availabilityFilters': [
-                            'deficient',
-                            'balanced',
-                            'actual',
-                            'nonActual',
-                            'nonLiquid',
-                            'invalidData'
-                        ],
-                        'orderBy': {
-                            'field': 'stockCount',
-                            'mode': 'desc'
-                        }
-                    }
-
-                }
-            case 'funnel':
-                report_type = 'DETAIL_HISTORY_REPORT'
-                payload = {
-                    'id': id,
-                    'reportType': report_type,
-                    'params': {
-                        'startDate': start_date,
-                        'endDate': end_date,
-                        'skipDeletedNm': skipDeletedNm
-                    }
-                }
-
+        """Генерация отчета."""
         endpoint = '/api/v2/nm-report/downloads'
+        if report_type == 'stocks':
+            report_type = 'STOCK_HISTORY_REPORT_CSV'
+            payload = {
+                'id': id,
+                'reportType': report_type,
+                'params': {
+                    'currentPeriod': {
+                        'start': start_date,
+                        'end': end_date,
+                    },
+                    'skipDeletedNm': skipDeletedNm,
+                    'stockType': '',
+                    'availabilityFilters': [
+                        'deficient',
+                        'balanced',
+                        'actual',
+                        'nonActual',
+                        'nonLiquid',
+                        'invalidData'
+                    ],
+                    'orderBy': {
+                        'field': 'stockCount',
+                        'mode': 'desc'
+                    }
+                }
+
+            }
+        else:
+            report_type = 'DETAIL_HISTORY_REPORT'
+            payload = {
+                'id': id,
+                'reportType': report_type,
+                'params': {
+                    'startDate': start_date,
+                    'endDate': end_date,
+                    'skipDeletedNm': skipDeletedNm
+                }
+            }
+
         self._make_request(method='POST',
                            api_type='Analytics_Statistics_API_KEY',
                            url_key='seller-analytics',
                            payload=payload,
                            endpoint=endpoint)
 
-    def get_stocks(self, start_date, end_date, stock_type: Literal['', 'wb', 'mp'], nmIDs=None) -> list:
+    def get_stocks(self, start_date: str, end_date: str, stock_type: Literal['', 'wb', 'mp'], nmIDs=None) -> list:
+        """Получение данных об остатках по товарам."""
         endpoint = '/api/v2/stocks-report/products/products'
         response = []
         offset = 0
-        while True:
+        payload = {
+            'currentPeriod': {
+                'start': start_date,
+                'end': end_date
+            },
+            'stockType': stock_type,
+            'skipDeletedNm': True,
+            'orderBy': {
+                'field': 'stockCount',
+                'mode': 'desc'
+            },
+            'availabilityFilters': [
+                'deficient',
+                'balanced',
+                'actual',
+                'nonActual',
+                'nonLiquid',
+                'invalidData'
+            ],
+            'limit': LIMIT_STOCKS,
+            'offset': offset
+        }
+        if nmIDs is not None:
+            payload['nmIDs'] = nmIDs
+
+        resp = self._make_request(method='POST',
+                                  api_type='Analytics_Statistics_API_KEY',
+                                  url_key='seller-analytics',
+                                  payload=payload,
+                                  endpoint=endpoint)
+        items = resp['data']['items']
+        antifreeze = 1000
+
+        while items and antifreeze:
+            antifreeze -= 1
+            offset += LIMIT_STOCKS
+            response.extend(items)
+            time.sleep(TIME_SLEEP_REPORTS)
+
             payload = {
                 'currentPeriod': {
                     'start': start_date,
@@ -272,7 +279,7 @@ class WildberriesAPIClient:
                     'nonLiquid',
                     'invalidData'
                 ],
-                'limit': 1000,
+                'limit': LIMIT_STOCKS,
                 'offset': offset
             }
             if nmIDs is not None:
@@ -284,18 +291,48 @@ class WildberriesAPIClient:
                                       payload=payload,
                                       endpoint=endpoint)
             items = resp['data']['items']
-            if items == []:
-                break
-            offset += 1000
-            response += items
-            time.sleep(20)
         return response
 
-    def get_avgPosition(self, currentStartDate, currentEndDate, pastStartDate, pastWndDate, nmIDs=None) -> list:
+    def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str, nmIDs=None) -> list:
+        """Получение данных о средней позиции в поиске."""
         endpoint = '/api/v2/search-report/report'
         results = []
         offset = 0
-        while True:
+        payload = {
+            'currentPeriod': {
+                'start': currentStartDate,
+                'end': currentEndDate
+            },
+            'pastPeriod': {
+                'start': pastStartDate,
+                'end': pastWndDate
+            },
+            'positionCluster': 'all',
+            'orderBy': {
+                'field': 'avgPosition',
+                'mode': 'desc'
+            },
+            'limit': LIMIT_AVG_POS,
+            'offset': offset
+        }
+
+        if nmIDs is not None:
+            payload['nmIDs'] = nmIDs
+
+        resp = self._make_request(method='POST',
+                                  api_type='Analytics_Statistics_API_KEY',
+                                  url_key='seller-analytics',
+                                  payload=payload,
+                                  endpoint=endpoint)
+        groups = resp['data']['groups']
+        antifreeze = 1000
+
+        while groups and antifreeze:
+            items = groups[-1]['items']
+            offset += LIMIT_AVG_POS
+            results.extend(items)
+            time.sleep(TIME_SLEEP_REPORTS)
+
             payload = {
                 'currentPeriod': {
                     'start': currentStartDate,
@@ -310,7 +347,7 @@ class WildberriesAPIClient:
                     'field': 'avgPosition',
                     'mode': 'desc'
                 },
-                'limit': 1000,
+                'limit': LIMIT_AVG_POS,
                 'offset': offset
             }
 
@@ -323,10 +360,4 @@ class WildberriesAPIClient:
                                       payload=payload,
                                       endpoint=endpoint)
             groups = resp['data']['groups']
-            if groups == []:
-                break
-            items = groups[-1]['items']
-            offset += 1000
-            results += items
-            time.sleep(20)
         return results

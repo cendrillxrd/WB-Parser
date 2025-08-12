@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 
 def get_today_date() -> str:
@@ -30,7 +31,6 @@ def get_week_number() -> int:
     return datetime.now().isocalendar()[1]
 
 
-def is_monday() -> bool:
-    """Возвращает True, если сегодня понедельник"""
-    if datetime.now().isoweekday() == 1:
-        return True
+def is_sunday() -> bool:
+    """Возвращает True, если сегодня воскресенье."""
+    return datetime.now().isoweekday() == 7

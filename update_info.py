@@ -1,6 +1,7 @@
 import pandas as pd
 
 from wildberries_collector import WildberriesDataCollector
+from mergers.funnel_new_info_merge import merge_funnel_and_new_info
 
 
 class InfoUpdater:
@@ -10,12 +11,14 @@ class InfoUpdater:
         self.collector = WildberriesDataCollector()
 
     def get_last_two_week_dates(self):
+        """Возвращает последние 14 дат из таблицы. Если дат меньше, вернет все, что есть."""
         dates = self.previous_funnel['Дата'].unique()
         sorted_dates = pd.to_datetime(dates).sort_values(ascending=False)
         sorted_str_dates = [str(date.date()) for date in sorted_dates]
         return sorted_str_dates[0:14]
 
     def update_info(self):
+        """Обновляет информацию в воронке продаж за последние 14 дат."""
         dates = self.get_last_two_week_dates()
         for date in dates:
             new_info = self.collector.get_report_response(date, date, 'funnel')
@@ -27,13 +30,7 @@ class InfoUpdater:
                 'Конверсия в заказ', 'Процент выкупа'
             ]
 
-            merged_df = pd.merge(
-                self.previous_funnel,
-                new_info[['Артикул WB', 'Дата'] + columns_to_update],
-                on=['Артикул WB', 'Дата'],
-                how='left',
-                suffixes=('', '_new')
-            )
+            merged_df = merge_funnel_and_new_info(self.previous_funnel, new_info, columns_to_update)
 
             for column in columns_to_update:
                 merged_df[column] = merged_df[column + '_new'].combine_first(merged_df[column])
