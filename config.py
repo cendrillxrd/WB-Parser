@@ -18,3 +18,5 @@ BASE_URLS = {
     'marketplace': 'https://marketplace-api.wildberries.ru',
     'dp-calendar': 'https://dp-calendar-api.wildberries.ru'
 }
+
+FILE_PATH = 'C:/Users/Admin/Desktop/'

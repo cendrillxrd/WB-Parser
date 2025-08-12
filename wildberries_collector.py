@@ -22,6 +22,7 @@ from utils.date_helpers import (get_last_two_months, get_today_date,
                                 get_week_number, get_yesterday_date)
 from utils.file_helpers import is_csv_empty, zip_file_converter_to_df
 from wildberries_api import WildberriesAPIClient
+from config import FILE_PATH
 
 REPORT_TEMP = 5
 TIME_SLEEP = 20
@@ -46,7 +47,7 @@ class WildberriesDataCollector:
         """Сохраняет таблицы в csv файл."""
         info = self.collect_daily_stats()
         for key, value in info.items():
-            file_name = f'{key}.csv'
+            file_name = f'{FILE_PATH}{key}.csv'
             if is_csv_empty(file_name):
                 value.to_csv(file_name, index=False, encoding='cp1251')
             else:
