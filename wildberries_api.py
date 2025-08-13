@@ -9,11 +9,13 @@ from config import API_KEYS, BASE_URLS
 from utils.api_helpers import update_params_for_pagination
 
 logger = logging.getLogger(__name__)
-LIMIT_CARDS = 100
-LIMIT_STOCKS = 1000
-LIMIT_AVG_POS = 1000
-TIME_SLEEP_CARDS = 0.7
-TIME_SLEEP_REPORTS = 20
+LIMIT_CARDS = 100  # <= 100
+LIMIT_STOCKS = 1000  # <= 1000
+LIMIT_AVG_POS = 1000  # <= 1000
+LIMIT_PRICE = 1000  # <= 1000
+TIME_SLEEP_CARDS = 0.7  # >= 0.6
+TIME_SLEEP_REPORTS = 20  # >= 20
+TIME_SLEEP_PRICE = 1  # >= 0.6
 
 
 class WildberriesAPIClient:
@@ -26,7 +28,7 @@ class WildberriesAPIClient:
     def _make_request(
             self,
             api_type: str,
-            url_key: Literal['suppliers', 'content', 'seller-analytics', 'statistics', 'marketplace', 'dp-calendar'],
+            url_key: Literal['suppliers', 'content', 'seller-analytics', 'statistics', 'marketplace', 'dp-calendar', 'discounts-prices'],
             method: str,
             endpoint: str,
             params: Optional[Dict] = None,
@@ -293,7 +295,8 @@ class WildberriesAPIClient:
             items = resp['data']['items']
         return response
 
-    def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str, nmIDs=None) -> list:
+    def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str,
+                         nmIDs=None) -> list:
         """Получение данных о средней позиции в поиске."""
         endpoint = '/api/v2/search-report/report'
         results = []
@@ -362,3 +365,41 @@ class WildberriesAPIClient:
                                       endpoint=endpoint)
             groups = resp['data']['groups']
         return results
+
+    def get_prices(self):
+        endpoint = '/api/v2/list/goods/filter'
+        offset = 0
+        result = []
+
+        params = {
+            'limit': LIMIT_PRICE,
+            'offset': offset
+        }
+        response = self._make_request(method='GET',
+                                      api_type='API_PAPA',
+                                      url_key='discounts-prices',
+                                      params=params,
+                                      endpoint=endpoint)
+        list_goods = response['data']['listGoods']
+        antifreeze = 1000
+
+        while list_goods and antifreeze:
+            antifreeze -= 1
+            offset += LIMIT_PRICE
+            result.extend(list_goods)
+            time.sleep(TIME_SLEEP_PRICE)
+            print(len(list_goods))
+
+            params = {
+                'limit': LIMIT_PRICE,
+                'offset': offset
+            }
+            response = self._make_request(method='GET',
+                                          api_type='API_PAPA',
+                                          url_key='discounts-prices',
+                                          params=params,
+                                          endpoint=endpoint)
+            list_goods = response['data']['listGoods']
+        return result
+
+

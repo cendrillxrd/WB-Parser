@@ -13,17 +13,22 @@ def merge_funnel_and_stock(funnel: pd.DataFrame, fbs: pd.DataFrame, fbw: pd.Data
 
     funnel_fbs_fbw['Общий остаток'] = funnel_fbs_fbw['Остатки FBW'] + funnel_fbs_fbw['Остатки FBS']
 
-    # Функция для объединения значений стоимости товаров
-    def get_not_zero_info(row):
-        if row['Cтоимость товара со скидкой продавца_x'] == 0:
-            return row['Cтоимость товара со скидкой продавца_y']
-        return row['Cтоимость товара со скидкой продавца_x']
+    columns_for_merges = ['Cтоимость товара со скидкой продавца', 'Доступность товара']
 
-    funnel_fbs_fbw['Cтоимость товара со скидкой продавца'] = funnel_fbs_fbw.apply(get_not_zero_info, axis=1)
-    funnel_fbs_fbw.drop(['Cтоимость товара со скидкой продавца_x', 'Cтоимость товара со скидкой продавца_y'],
-                        inplace=True,
-                        axis=1)
+    for col in columns_for_merges:
+        def get_not_zero_info_price(row):
+            if row[f'{col}_x'] in (0, 'Не рассчитано'):
+                return row[f'{col}_y']
+            return row[f'{col}_x']
+
+        funnel_fbs_fbw[col] = funnel_fbs_fbw.apply(get_not_zero_info_price, axis=1)
+        funnel_fbs_fbw.drop([f'{col}_x', f'{col}_y'],
+                            inplace=True,
+                            axis=1)
 
     funnel_fbs_fbw['Cтоимость товара со скидкой продавца'] = pd.to_numeric(
         funnel_fbs_fbw['Cтоимость товара со скидкой продавца'], downcast="integer")
+
+    funnel_fbs_fbw['Доступность товара'] = funnel_fbs_fbw['Доступность товара'].replace(0, 'Не рассчитано')
+
     return funnel_fbs_fbw

@@ -28,7 +28,8 @@ def correct_funnel_columns(df: pd.DataFrame) -> pd.DataFrame:
                'В пути от клиента',
                'Cтоимость товара со скидкой продавца',
                'Средняя позиция в поиске',
-               'Средняя позиция в поиске (Период 30 дней)']]
+               'Средняя позиция в поиске (Период 30 дней)',
+               'Доступность товара']]
 
 
 def correct_stocks_by_size_columns(df: pd.DataFrame) -> pd.DataFrame:
