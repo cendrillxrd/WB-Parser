@@ -76,6 +76,8 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
         brand = row['BrandName']
         subject_name = row['SubjectName']
         vendor_code = row['VendorCode']
+        to_client_count = row['ToClientCount']
+        from_client_count = row['FromClientCount']
 
         if articul in stocks_sizes:
             if size in stocks_sizes[articul]['Sizes']:
@@ -87,6 +89,8 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
                 stocks_sizes[articul]['Sizes'][size] = {}
                 stocks_sizes[articul]['Sizes'][size]['FBS'] = 0
                 stocks_sizes[articul]['Sizes'][size]['FBW'] = 0
+                stocks_sizes[articul]['Sizes'][size]['ToClientCount'] = 0
+                stocks_sizes[articul]['Sizes'][size]['FromClientCount'] = 0
                 if region == 'Маркетплейс':
                     stocks_sizes[articul]['Sizes'][size]['FBS'] = stock
                 else:
@@ -101,10 +105,14 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
             stocks_sizes[articul]['Sizes'][size] = {}
             stocks_sizes[articul]['Sizes'][size]['FBS'] = 0
             stocks_sizes[articul]['Sizes'][size]['FBW'] = 0
+            stocks_sizes[articul]['Sizes'][size]['ToClientCount'] = 0
+            stocks_sizes[articul]['Sizes'][size]['FromClientCount'] = 0
             if region == 'Маркетплейс':
                 stocks_sizes[articul]['Sizes'][size]['FBS'] += stock
             else:
                 stocks_sizes[articul]['Sizes'][size]['FBW'] += stock
+        stocks_sizes[articul]['Sizes'][size]['ToClientCount'] += to_client_count
+        stocks_sizes[articul]['Sizes'][size]['FromClientCount'] += from_client_count
 
     stocks.apply(get_fbw_fbs_by_size, axis=1)
 
@@ -117,9 +125,14 @@ def convert_stocks_by_size(stocks: pd.DataFrame) -> pd.DataFrame:
                                 'Название предмета': value['SubjectName'],
                                 'Размер': size,
                                 'Остаток FBS': stock['FBS'],
-                                'Остаток FBW': stock['FBW']})
+                                'Остаток FBW': stock['FBW'],
+                                'В пути к клиенту': stock['ToClientCount'],
+                                'В пути от клиента': stock['FromClientCount'],
+                                })
     stocks = pd.DataFrame(stocks_list)
-    stocks = stocks[(stocks['Остаток FBS'] > 0) | (stocks['Остаток FBW'] > 0)]
+    stocks = stocks[(stocks['Остаток FBS'] > 0) | (stocks['Остаток FBW'] > 0) |
+                    (stocks['В пути к клиенту'] > 0) | (stocks['В пути от клиента'] > 0)]
+
     stocks['Дата'] = get_today_date()
     stocks['Неделя'] = get_week_number()
     return stocks

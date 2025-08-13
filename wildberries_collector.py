@@ -107,13 +107,13 @@ class WildberriesDataCollector:
                             resport_type: Literal['stocks', 'funnel']) -> Optional[pd.DataFrame]:
         """Создание отчета по воронке продаж или остаткам."""
         for temp in range(REPORT_TEMP):
-            # id = 'e209b833-4d75-4b13-b56f-1dbfe06e0acc'
-            id = str(uuid.uuid4())
-            pd.DataFrame({'ID': [id], 'date': start_date_time}).to_csv(f'ids_{resport_type}.csv',
-                                                                       mode='a',
-                                                                       index=False)
-            self.api.create_report(id, start_date_time, end_date_time, resport_type)
-            time.sleep(TIME_SLEEP)
+            id = 'd1af31d8-c405-4d63-9d2e-f813557760f2'
+            # id = str(uuid.uuid4())
+            # pd.DataFrame({'ID': [id], 'date': start_date_time}).to_csv(f'ids_{resport_type}.csv',
+            #                                                            mode='a',
+            #                                                            index=False)
+            # self.api.create_report(id, start_date_time, end_date_time, resport_type)
+            # time.sleep(TIME_SLEEP)
             if self.waiting_of_analytics_report(id):
                 response = self.api.get_report_response(id)
                 zip_file = io.BytesIO(response.content)

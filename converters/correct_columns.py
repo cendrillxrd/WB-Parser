@@ -41,4 +41,7 @@ def correct_stocks_by_size_columns(df: pd.DataFrame) -> pd.DataFrame:
                'Название предмета',
                'Размер',
                'Остаток FBS',
-               'Остаток FBW']]
+               'Остаток FBW',
+               'В пути к клиенту',
+               'В пути от клиента',
+               ]]
