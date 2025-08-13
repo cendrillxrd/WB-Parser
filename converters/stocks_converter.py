@@ -9,23 +9,40 @@ def convert_get_stocks_result_to_df(new_get_stocks_result: list[dict],
                                     stock_type: Literal['', 'wb', 'mp']) -> pd.DataFrame:
     """Преобразует данные об остатках в DataFrame для воронки продаж."""
     df = pd.DataFrame(new_get_stocks_result)
+
+    def correct_availability_names(row):
+        availability = row['availability']
+
+        names = {
+            'deficient': 'Дефицит',
+            'actual': 'Актуальный',
+            'balanced': 'Баланс',
+            'nonActual': 'Неактуальный',
+            'nonLiquid': 'Неликвид',
+            'invalidData': 'Не рассчитано'}
+        if availability in names:
+            return names[availability]
+
     assigned_df = df.assign(stockCount=df['metrics'].apply(lambda x: x['stockCount']),
-                            currentPrice=df['metrics'].apply(lambda x: x['currentPrice']['minPrice'])
+                            currentPrice=df['metrics'].apply(lambda x: x['currentPrice']['minPrice']),
+                            availability=df['metrics'].apply(correct_availability_names)
                             )
     if stock_type in ('wb', ''):
         assigned_df_2 = assigned_df.assign(toClientCount=df['metrics'].apply(lambda x: x['toClientCount']),
                                            fromClientCount=df['metrics'].apply(lambda x: x['fromClientCount'])
                                            )
-        corrected_df = assigned_df_2[['nmID', 'stockCount', 'toClientCount', 'fromClientCount', 'currentPrice']].copy()
+        corrected_df = assigned_df_2[['nmID', 'stockCount', 'toClientCount', 'fromClientCount',
+                                      'currentPrice', 'availability']].copy()
     else:
-        corrected_df = assigned_df[['nmID', 'stockCount', 'currentPrice']].copy()
+        corrected_df = assigned_df[['nmID', 'stockCount', 'currentPrice', 'availability']].copy()
 
     if stock_type == '':
         corrected_df.rename({'nmID': 'Артикул WB',
                              'stockCount': 'Общий остаток',
                              'toClientCount': 'В пути к клиенту',
                              'fromClientCount': 'В пути от клиента',
-                             'currentPrice': 'Cтоимость товара со скидкой продавца'},
+                             'currentPrice': 'Cтоимость товара со скидкой продавца',
+                             'availability': 'Доступность товара'},
                             inplace=True,
                             axis=1)
     elif stock_type == 'wb':
@@ -33,13 +50,15 @@ def convert_get_stocks_result_to_df(new_get_stocks_result: list[dict],
                              'stockCount': 'Остатки FBW',
                              'toClientCount': 'В пути к клиенту',
                              'fromClientCount': 'В пути от клиента',
-                             'currentPrice': 'Cтоимость товара со скидкой продавца'},
+                             'currentPrice': 'Cтоимость товара со скидкой продавца',
+                             'availability': 'Доступность товара'},
                             inplace=True,
                             axis=1)
     else:
         corrected_df.rename({'nmID': 'Артикул WB',
                              'stockCount': 'Остатки FBS',
-                             'currentPrice': 'Cтоимость товара со скидкой продавца'},
+                             'currentPrice': 'Cтоимость товара со скидкой продавца',
+                             'availability': 'Доступность товара'},
                             inplace=True,
                             axis=1)
     return corrected_df

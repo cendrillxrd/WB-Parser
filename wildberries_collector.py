@@ -93,15 +93,14 @@ class WildberriesDataCollector:
             time.sleep(TIME_SLEEP)
             reports = self.api.get_reports_list([id])
             report_status = get_analytics_report_status(reports)
-            match report_status:
-                case 'SUCCESS':
-                    return True
-                case 'FAILED':
-                    print('Отчет не сгенерировался')
-                    self.api.retry_create_report(id)
-                case _:
-                    tries += 1
-                    print('Ожидание готовности отчета')
+            if report_status == 'SUCCESS':
+                return True
+            elif report_status == 'FAILED':
+                print('Отчет не сгенерировался')
+                self.api.retry_create_report(id)
+            else:
+                tries += 1
+                print('Ожидание готовности отчета')
         return False
 
     def get_report_response(self, start_date_time: str, end_date_time: str,

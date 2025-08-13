@@ -8,15 +8,14 @@ def convert_get_avg_position_to_df(get_avg_position_result: list[dict], period: 
     df = pd.DataFrame(get_avg_position_result)
     assigned_df = df.assign(avgPosition=df['avgPosition'].apply(lambda x: x['current']))
     cleaned_df = assigned_df[['nmId', 'avgPosition']].copy()
-    match period:
-        case 'm':
-            cleaned_df.rename({'nmId': 'Артикул WB',
-                               'avgPosition': 'Средняя позиция в поиске (Период 30 дней)'},
-                              inplace=True,
-                              axis=1)
-        case 't':
-            cleaned_df.rename({'nmId': 'Артикул WB',
-                               'avgPosition': 'Средняя позиция в поиске'},
-                              inplace=True,
-                              axis=1)
+    if period == 'm':
+        cleaned_df.rename({'nmId': 'Артикул WB',
+                           'avgPosition': 'Средняя позиция в поиске (Период 30 дней)'},
+                          inplace=True,
+                          axis=1)
+    else:
+        cleaned_df.rename({'nmId': 'Артикул WB',
+                           'avgPosition': 'Средняя позиция в поиске'},
+                          inplace=True,
+                          axis=1)
     return cleaned_df
