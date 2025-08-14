@@ -5,7 +5,7 @@ from typing import Optional
 import pandas as pd
 
 
-def zip_file_converter_to_df(zip_file, reportType) -> Optional[pd.DataFrame]:
+def zip_file_converter_to_df(zip_file, reportType: str) -> Optional[pd.DataFrame]:
     """Преобразует архивированный csv файл в DataFrame."""
     with zipfile.ZipFile(zip_file) as z:
         csv_files = [f for f in z.namelist() if f.endswith('.csv')]
@@ -39,7 +39,7 @@ def zip_file_converter_to_df(zip_file, reportType) -> Optional[pd.DataFrame]:
                         return stocks
 
 
-def is_csv_empty(file_path) -> bool:
+def is_csv_empty(file_path: str) -> bool:
     """Проверяет, пустой ли файл."""
     if not os.path.exists(file_path):
         return True
