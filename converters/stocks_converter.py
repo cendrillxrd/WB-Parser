@@ -4,6 +4,14 @@ import pandas as pd
 
 from utils.date_helpers import get_today_date, get_week_number
 
+CORRECT_AVAILABILITY_NAMES = {
+    'deficient': 'Дефицит',
+    'actual': 'Актуальный',
+    'balanced': 'Баланс',
+    'nonActual': 'Неактуальный',
+    'nonLiquid': 'Неликвид',
+    'invalidData': 'Не рассчитано'}
+
 
 def convert_get_stocks_result_to_df(get_stocks_result: list[dict],
                                     stock_type: Literal['', 'wb', 'mp']) -> pd.DataFrame:
@@ -12,16 +20,8 @@ def convert_get_stocks_result_to_df(get_stocks_result: list[dict],
 
     def correct_availability_names(row):
         availability = row['availability']
-
-        names = {
-            'deficient': 'Дефицит',
-            'actual': 'Актуальный',
-            'balanced': 'Баланс',
-            'nonActual': 'Неактуальный',
-            'nonLiquid': 'Неликвид',
-            'invalidData': 'Не рассчитано'}
-        if availability in names:
-            return names[availability]
+        names = CORRECT_AVAILABILITY_NAMES
+        return names.get(availability)
 
     assigned_df = df.assign(stockCount=df['metrics'].apply(lambda x: x['stockCount']),
                             availability=df['metrics'].apply(correct_availability_names)

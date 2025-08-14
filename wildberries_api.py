@@ -33,7 +33,7 @@ class WildberriesAPIClient:
             endpoint: str,
             params: Optional[Dict] = None,
             payload: Optional[Dict] = None,
-            retries: int = 3) -> Optional[Dict]:
+            retries: int = 5) -> Optional[Dict]:
         """Делает запрос по API."""
         url = f'{self.base_url[url_key]}{endpoint}'
 

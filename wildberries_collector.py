@@ -33,7 +33,7 @@ class WildberriesDataCollector:
         self.today = datetime.now(pytz.utc).date()
         self.todayDate = get_today_date()
         self.yesterdayDate = get_yesterday_date()
-        # self.cards_list = self.api.get_cards_list()
+        self.cards_list = self.api.get_cards_list()
 
     def collect_daily_stats(self) -> Dict[str, pd.DataFrame]:
         """Собирает данные для таблиц."""
@@ -68,10 +68,11 @@ class WildberriesDataCollector:
 
     def get_avg_pos(self, nm_ids: list, period: Literal['m', 't']) -> pd.DataFrame:
         """Получение и преобразование данных о средней позиции в поиске."""
+        avg_pos_list = []
         if period == 't':
             avg_pos_list = self.api.get_avg_position(self.todayDate, self.todayDate, self.yesterdayDate,
                                                      self.yesterdayDate, nm_ids)
-        if period == 'm':
+        elif period == 'm':
             current_start_date, current_end_date, past_start_date, past_end_date = get_last_two_months()
             avg_pos_list = self.api.get_avg_position(current_start_date, current_end_date, past_start_date,
                                                      past_end_date, nm_ids)  # период Месяц
@@ -113,15 +114,14 @@ class WildberriesDataCollector:
                                                                        index=False)
             self.api.create_report(id, start_date_time, end_date_time, resport_type)
             time.sleep(TIME_SLEEP)
-            if self.waiting_of_analytics_report(id):
-                response = self.api.get_report_response(id)
-                zip_file = io.BytesIO(response.content)
-                report = zip_file_converter_to_df(zip_file, resport_type)
-                print(f'Отчет загружен {start_date_time}')
-                return report
-            else:
+            if not self.waiting_of_analytics_report(id):
                 print('Не удалось загрузить отчет')
-            return None
+                return None
+            response = self.api.get_report_response(id)
+            zip_file = io.BytesIO(response.content)
+            report = zip_file_converter_to_df(zip_file, resport_type)
+            print(f'Отчет загружен {start_date_time}')
+            return report
 
     def get_stocks_fbs_fbw_by_size(self) -> pd.DataFrame:  # для второй таблицы
         """Получение данных об остатках поразмерно."""

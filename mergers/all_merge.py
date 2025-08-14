@@ -7,7 +7,7 @@ from mergers.funnel_prices_merge import merge_funnel_and_prices
 from mergers.funnel_stocks_merge import merge_funnel_and_stock
 
 
-def all_merge(info: dict[str, pd.DataFrame]):
+def all_merge(info: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Объединение всех данных."""
     funnel, fbs_df, fbw_df, avg_pos_today_df, avg_pos_month_df, characteristic_df, prices_df = info.values()
 

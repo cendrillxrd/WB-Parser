@@ -13,18 +13,15 @@ def merge_funnel_and_stock(funnel: pd.DataFrame, fbs: pd.DataFrame, fbw: pd.Data
 
     funnel_fbs_fbw['Общий остаток'] = funnel_fbs_fbw['Остатки FBW'] + funnel_fbs_fbw['Остатки FBS']
 
-    columns_for_merges = ['Доступность товара']
+    def get_not_zero_info_availability(row):
+        if row['Доступность товара_x'] == 'Не рассчитано':
+            return row['Доступность товара_y']
+        return row['Доступность товара_x']
 
-    for col in columns_for_merges:
-        def get_not_zero_info_availability(row):
-            if row[f'{col}_x'] == 'Не рассчитано':
-                return row[f'{col}_y']
-            return row[f'{col}_x']
-
-        funnel_fbs_fbw[col] = funnel_fbs_fbw.apply(get_not_zero_info_availability, axis=1)
-        funnel_fbs_fbw.drop([f'{col}_x', f'{col}_y'],
-                            inplace=True,
-                            axis=1)
+    funnel_fbs_fbw['Доступность товара'] = funnel_fbs_fbw.apply(get_not_zero_info_availability, axis=1)
+    funnel_fbs_fbw.drop(['Доступность товара_x', 'Доступность товара_y'],
+                        inplace=True,
+                        axis=1)
 
     funnel_fbs_fbw['Доступность товара'] = funnel_fbs_fbw['Доступность товара'].replace(0, 'Не рассчитано')
 
