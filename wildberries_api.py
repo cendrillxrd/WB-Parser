@@ -376,7 +376,7 @@ class WildberriesAPIClient:
             'offset': offset
         }
         response = self._make_request(method='GET',
-                                      api_type='API_PAPA',
+                                      api_type='Price_discount_API_KEY',
                                       url_key='discounts-prices',
                                       params=params,
                                       endpoint=endpoint)
@@ -395,7 +395,7 @@ class WildberriesAPIClient:
                 'offset': offset
             }
             response = self._make_request(method='GET',
-                                          api_type='API_PAPA',
+                                          api_type='Price_discount_API_KEY',
                                           url_key='discounts-prices',
                                           params=params,
                                           endpoint=endpoint)

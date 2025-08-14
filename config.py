@@ -7,7 +7,7 @@ load_dotenv()
 API_KEYS = {
     'Analytics_Statistics_API_KEY': os.getenv('ANALYTICS_STATISTICS_API_KEY'),
     'Content_Marketplace_API_KEY': os.getenv('CONTENT_MARKETPLACE_API_KEY'),
-    'API_PAPA': os.getenv('API_PAPA')
+    'Price_discount_API_KEY': os.getenv('PRICE_DISCOUNT_API_KEY')
 }
 
 BASE_URLS = {

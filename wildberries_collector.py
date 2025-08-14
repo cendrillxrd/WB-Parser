@@ -13,10 +13,9 @@ from converters.correct_columns import (correct_funnel_columns,
                                         correct_stocks_by_size_columns)
 from converters.stocks_converter import (convert_get_stocks_result_to_df,
                                          convert_stocks_by_size)
-from mergers.funnel_avg_position_merge import merge_funnel_and_avg_pos
-from mergers.funnel_characteristics_merge import \
-    merge_funnel_and_characteristic
-from mergers.funnel_stocks_merge import merge_funnel_and_stock
+from converters.prices_converter import convert_prices_result_to_df
+from mergers.all_merge import all_merge
+
 from utils.api_helpers import get_analytics_report_status
 from utils.date_helpers import (get_last_two_months, get_today_date,
                                 get_week_number, get_yesterday_date)
@@ -39,8 +38,8 @@ class WildberriesDataCollector:
     def collect_daily_stats(self) -> Dict[str, pd.DataFrame]:
         """Собирает данные для таблиц."""
         return {
-            'Воронка продаж': self.get_funnel_fbw_fbs_avg_pos_characteristic(),
-            'Остатки': self.get_stocks_fbs_fbw_by_size()
+            'Воронка продаж': self.get_final_funnel_data_frame(),
+            # 'Остатки': self.get_stocks_fbs_fbw_by_size()
         }
 
     def save_info(self):
@@ -53,29 +52,29 @@ class WildberriesDataCollector:
             else:
                 value.to_csv(file_name, mode='a', index=False, encoding='cp1251', header=False)
 
-    def get_stocks_FBW_stats(self, nmIDs: list) -> pd.DataFrame:
+    def get_stocks_FBW_stats(self, nm_ids: list) -> pd.DataFrame:
         """Получение и преобразование данных об остатках на складах WB."""
-        fbw_list = self.api.get_stocks(self.todayDate, self.todayDate, 'wb', nmIDs)
+        fbw_list = self.api.get_stocks(self.todayDate, self.todayDate, 'wb', nm_ids)
         fbw_df = convert_get_stocks_result_to_df(fbw_list, 'wb')
         print('Данные FBW загружены')
         return fbw_df
 
-    def get_stocks_FBS_stats(self, nmIDs: list) -> pd.DataFrame:
+    def get_stocks_FBS_stats(self, nm_ids: list) -> pd.DataFrame:
         """Получение и преобразование данных об остатках на складах Продавца."""
-        fbs_list = self.api.get_stocks(self.todayDate, self.todayDate, 'mp', nmIDs)
+        fbs_list = self.api.get_stocks(self.todayDate, self.todayDate, 'mp', nm_ids)
         fbs_df = convert_get_stocks_result_to_df(fbs_list, 'mp')
         print('Данные FBS загружены')
         return fbs_df
 
-    def get_avg_pos(self, nmIDs: list, period: Literal['m', 't']) -> pd.DataFrame:
+    def get_avg_pos(self, nm_ids: list, period: Literal['m', 't']) -> pd.DataFrame:
         """Получение и преобразование данных о средней позиции в поиске."""
         if period == 't':
             avg_pos_list = self.api.get_avg_position(self.todayDate, self.todayDate, self.yesterdayDate,
-                                                     self.yesterdayDate, nmIDs)
+                                                     self.yesterdayDate, nm_ids)
         if period == 'm':
             current_start_date, current_end_date, past_start_date, past_end_date = get_last_two_months()
             avg_pos_list = self.api.get_avg_position(current_start_date, current_end_date, past_start_date,
-                                                     past_end_date, nmIDs)  # период Месяц
+                                                     past_end_date, nm_ids)  # период Месяц
         avg_pos_df = convert_get_avg_position_to_df(avg_pos_list, period)
         print(f'Данные AVG POS {period} загружены')
         return avg_pos_df
@@ -107,7 +106,7 @@ class WildberriesDataCollector:
                             resport_type: Literal['stocks', 'funnel']) -> Optional[pd.DataFrame]:
         """Создание отчета по воронке продаж или остаткам."""
         for temp in range(REPORT_TEMP):
-            # id = 'd1af31d8-c405-4d63-9d2e-f813557760f2'
+            # id = '7f4a6bce-51de-40b7-9775-c859a104e73b'
             id = str(uuid.uuid4())
             pd.DataFrame({'ID': [id], 'date': start_date_time}).to_csv(f'ids_{resport_type}.csv',
                                                                        mode='a',
@@ -131,27 +130,39 @@ class WildberriesDataCollector:
         final_data_frame = correct_stocks_by_size_columns(stocks_by_size)
         return final_data_frame
 
-    def get_funnel_fbw_fbs_avg_pos_characteristic(self) -> pd.DataFrame:
-        """Получение итоговой таблицы по воронке продаж."""
-        funnel = self.get_report_response(self.todayDate, self.todayDate, 'funnel')
+    def collect_info(self):
+        """Сбор данных для финальной таблицы."""
+        funnel = self.get_report_response(self.todayDate, self.todayDate, 'funnel')  # Воронка
         funnel['Неделя'] = get_week_number()
+        nm_ids = funnel['Артикул WB'].unique().tolist()
 
-        nmIDs = funnel['Артикул WB'].unique().tolist()
-        fbs_df = self.get_stocks_FBS_stats(nmIDs)
+        fbs_df = self.get_stocks_FBS_stats(nm_ids)  # Остатки FBS
+        fbw_df = self.get_stocks_FBW_stats(nm_ids)  # Остатки FBW
+        avg_pos_month_df = self.get_avg_pos(nm_ids, 'm')  # Средняя позиция за месяц
+        avg_pos_today_df = self.get_avg_pos(nm_ids, 't')  # Средняя позиция за день
+        characteristic_df = convert_cards_list_to_df_for_funnel(self.cards_list)  # Данные о карточке
+        prices_df = self.get_prices()  # Цены
 
-        fbw_df = self.get_stocks_FBW_stats(nmIDs)
+        info = {
+            'funnel': funnel,
+            'fbs': fbs_df,
+            'fbw': fbw_df,
+            'avg_pos_today': avg_pos_today_df,
+            'avg_pos_month': avg_pos_month_df,
+            'characteristic': characteristic_df,
+            'prices': prices_df,
+        }
 
-        avg_pos_month_df = self.get_avg_pos(nmIDs, 'm')
-        avg_pos_today_df = self.get_avg_pos(nmIDs, 't')
+        return info
 
-        characteristic_df = convert_cards_list_to_df_for_funnel(self.cards_list)
+    def get_final_funnel_data_frame(self) -> pd.DataFrame:
+        """Получение итоговой таблицы по воронке продаж."""
+        info = self.collect_info()
+        final_data_frame = all_merge(info)
+        corrected_final_data_frame = correct_funnel_columns(final_data_frame)
+        return corrected_final_data_frame
 
-        funnel_fbw_fbs = merge_funnel_and_stock(funnel, fbs_df, fbw_df)
-        funnel_fbw_fbs_avg_pos_m = merge_funnel_and_avg_pos(funnel_fbw_fbs, avg_pos_today_df, 't')
-        funnel_fbw_fbs_avg_pos_m_t = merge_funnel_and_avg_pos(funnel_fbw_fbs_avg_pos_m,
-                                                              avg_pos_month_df, 'm')
-        funnel_fbw_fbs_avg_pos_characteristic = merge_funnel_and_characteristic(
-            funnel_fbw_fbs_avg_pos_m_t, characteristic_df)
-
-        final_data_frame = correct_funnel_columns(funnel_fbw_fbs_avg_pos_characteristic)
-        return final_data_frame
+    def get_prices(self):
+        prices_response = self.api.get_prices()
+        prices_df = convert_prices_result_to_df(prices_response)
+        return prices_df
