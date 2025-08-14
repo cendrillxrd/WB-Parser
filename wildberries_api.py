@@ -108,12 +108,12 @@ class WildberriesAPIClient:
             print(loaded_cards)
         return response['cards']
 
-    def get_nmIds(self) -> list:
+    def get_nm_ids(self) -> list:
         """Получение артикулов WB."""
         cards_list_data = self.get_cards_list()
         df = pd.DataFrame(cards_list_data)
-        cards_nmID_lst = df['nmID'].unique().to_list()
-        return cards_nmID_lst
+        cards_nm_id_lst = df['nmID'].unique().to_list()
+        return cards_nm_id_lst
 
     def get_barcodes(self) -> list:
         """Получение баркодов"""
@@ -170,7 +170,7 @@ class WildberriesAPIClient:
                            endpoint=endpoint)
 
     def create_report(self, id: str, start_date: str, end_date: str, report_type: Literal['stocks', 'funnel'],
-                      skipDeletedNm=True):
+                      skip_deleted_nm=True):
         """Генерация отчета."""
         endpoint = '/api/v2/nm-report/downloads'
         if report_type == 'stocks':
@@ -183,7 +183,7 @@ class WildberriesAPIClient:
                         'start': start_date,
                         'end': end_date,
                     },
-                    'skipDeletedNm': skipDeletedNm,
+                    'skipDeletedNm': skip_deleted_nm,
                     'stockType': '',
                     'availabilityFilters': [
                         'deficient',
@@ -208,7 +208,7 @@ class WildberriesAPIClient:
                 'params': {
                     'startDate': start_date,
                     'endDate': end_date,
-                    'skipDeletedNm': skipDeletedNm
+                    'skipDeletedNm': skip_deleted_nm
                 }
             }
 
@@ -218,7 +218,7 @@ class WildberriesAPIClient:
                            payload=payload,
                            endpoint=endpoint)
 
-    def get_stocks(self, start_date: str, end_date: str, stock_type: Literal['', 'wb', 'mp'], nmIDs=None) -> list:
+    def get_stocks(self, start_date: str, end_date: str, stock_type: Literal['', 'wb', 'mp'], nm_ids=None) -> list:
         """Получение данных об остатках по товарам."""
         endpoint = '/api/v2/stocks-report/products/products'
         response = []
@@ -245,8 +245,8 @@ class WildberriesAPIClient:
             'limit': LIMIT_STOCKS,
             'offset': offset
         }
-        if nmIDs is not None:
-            payload['nmIDs'] = nmIDs
+        if nm_ids is not None:
+            payload['nmIDs'] = nm_ids
 
         resp = self._make_request(method='POST',
                                   api_type='Analytics_Statistics_API_KEY',
@@ -284,8 +284,8 @@ class WildberriesAPIClient:
                 'limit': LIMIT_STOCKS,
                 'offset': offset
             }
-            if nmIDs is not None:
-                payload['nmIDs'] = nmIDs
+            if nm_ids is not None:
+                payload['nmIDs'] = nm_ids
 
             resp = self._make_request(method='POST',
                                       api_type='Analytics_Statistics_API_KEY',
@@ -296,7 +296,7 @@ class WildberriesAPIClient:
         return response
 
     def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str,
-                         nmIDs=None) -> list:
+                         nm_ids=None) -> list:
         """Получение данных о средней позиции в поиске."""
         endpoint = '/api/v2/search-report/report'
         results = []
@@ -319,8 +319,8 @@ class WildberriesAPIClient:
             'offset': offset
         }
 
-        if nmIDs is not None:
-            payload['nmIDs'] = nmIDs
+        if nm_ids is not None:
+            payload['nmIDs'] = nm_ids
 
         resp = self._make_request(method='POST',
                                   api_type='Analytics_Statistics_API_KEY',
@@ -355,8 +355,8 @@ class WildberriesAPIClient:
                 'offset': offset
             }
 
-            if nmIDs is not None:
-                payload['nmIDs'] = nmIDs
+            if nm_ids is not None:
+                payload['nmIDs'] = nm_ids
 
             resp = self._make_request(method='POST',
                                       api_type='Analytics_Statistics_API_KEY',

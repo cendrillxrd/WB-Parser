@@ -33,13 +33,13 @@ class WildberriesDataCollector:
         self.today = datetime.now(pytz.utc).date()
         self.todayDate = get_today_date()
         self.yesterdayDate = get_yesterday_date()
-        self.cards_list = self.api.get_cards_list()
+        # self.cards_list = self.api.get_cards_list()
 
     def collect_daily_stats(self) -> Dict[str, pd.DataFrame]:
         """Собирает данные для таблиц."""
         return {
             'Воронка продаж': self.get_final_funnel_data_frame(),
-            # 'Остатки': self.get_stocks_fbs_fbw_by_size()
+            'Остатки': self.get_stocks_fbs_fbw_by_size()
         }
 
     def save_info(self):
