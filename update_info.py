@@ -23,8 +23,8 @@ class InfoUpdater:
         return sorted_str_dates[0:14]
 
     def update_info(self):
-        logger.info(f'Обновление информации по воронке продаж')
         """Обновляет информацию в воронке продаж за последние 14 дат."""
+        logger.info(f'Обновление информации по воронке продаж')
         dates = self.get_last_two_week_dates()
         for date in dates:
             logger.debug(f'Обновление воронки {date}')

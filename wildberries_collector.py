@@ -184,6 +184,7 @@ class WildberriesDataCollector:
         return corrected_final_data_frame
 
     def get_prices(self):
+        """Получение цен на товары."""
         logger.info(f'Получение данных о ценах')
         prices_response = self.api.get_prices()
         prices_df = convert_prices_result_to_df(prices_response)
