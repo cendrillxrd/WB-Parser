@@ -1,7 +1,12 @@
 import pandas as pd
+import logging
 
 from wildberries_collector import WildberriesDataCollector
 from mergers.funnel_new_info_merge import merge_funnel_and_new_info
+from logging_config import setup_logging
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class InfoUpdater:
@@ -18,9 +23,11 @@ class InfoUpdater:
         return sorted_str_dates[0:14]
 
     def update_info(self):
+        logger.debug(f'Обновление информации по воронке продаж')
         """Обновляет информацию в воронке продаж за последние 14 дат."""
         dates = self.get_last_two_week_dates()
         for date in dates:
+            logger.info(f'Обновление воронки {date}')
             new_info = self.collector.get_report_response(date, date, 'funnel')
 
             columns_to_update = [
@@ -39,5 +46,5 @@ class InfoUpdater:
             self.previous_funnel = merged_df
             for col in columns_to_update:
                 self.previous_funnel[col] = pd.to_numeric(self.previous_funnel[col], downcast="integer")
-            print(f'Обновилась дата {date}')
+            logger.info(f'Воронка {date} обновилась')
         self.previous_funnel.to_csv(self.file_path, index=False, encoding='cp1251')

@@ -3,7 +3,7 @@ from typing import Any, Dict
 import pandas as pd
 
 
-def convert_cards_list_to_df_for_funnel(cards_list: Dict[str, Any]) -> pd.DataFrame:
+def convert_cards_list_to_df_for_funnel(cards_list: list) -> pd.DataFrame:
     """Преобразует данные о карточках товаров в DataFrame для воронки продаж."""
     df = pd.DataFrame(cards_list)
 
