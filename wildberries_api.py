@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, Union
 
 import pandas as pd
 import requests
@@ -37,10 +37,10 @@ class WildberriesAPIClient:
             endpoint: str,
             params: Optional[Dict] = None,
             payload: Optional[Dict] = None,
-            retries: int = 5) -> Optional[Dict, bytes]:
+            retries: int = 5) -> Union[Dict, bytes]:
         """Делает запрос по API."""
         url = f'{self.base_url[url_key]}{endpoint}'
-        logger.debug(f'Выполнение запроса по адресу {url}')
+        logger.info(f'Выполнение запроса по адресу {url}')
 
         for attempt in range(retries):
             self.session.headers.update({'Authorization': self.api_key[api_type]})
@@ -53,23 +53,23 @@ class WildberriesAPIClient:
             )
             try:
                 response.raise_for_status()
-                logger.debug(f'Запрос выполнен успешно')
+                logger.info(f'Запрос выполнен успешно')
                 if self.session.headers['Content-Type'] == 'application/zip':
                     return response
                 return response.json()
 
             except requests.exceptions.HTTPError as err:
-                logger.debug(f'Запрос не удался, ошибка {err.response.status_code}'
+                logger.info(f'Запрос не удался, ошибка {err.response.status_code}'
                              f'Попытка {attempt + 1}/{retries}')
                 if err.response.status_code in (429, 500, 502, 503, 504):
                     wait_time = min(2 ** attempt, 10)
-                    logger.info(f"Retrying in {wait_time} seconds...")
+                    logger.debug(f"Retrying in {wait_time} seconds...")
                     time.sleep(wait_time)
                     continue
                 raise err
 
             except requests.exceptions.RequestException as err:
-                logger.debug(f'Запрос не удался, ошибка {err.response.status_code}')
+                logger.info(f'Запрос не удался, ошибка {err.response.status_code}')
                 if attempt == retries - 1:
                     raise err
                 time.sleep(1)
@@ -78,7 +78,7 @@ class WildberriesAPIClient:
 
     def get_cards_list(self) -> list:
         """Запрос карточек товаров."""
-        logger.debug(f'Запрос карточек товаров')
+        logger.info(f'Запрос карточек товаров')
         endpoint = '/content/v2/get/cards/list'
         payload = {
             'settings': {
@@ -98,7 +98,7 @@ class WildberriesAPIClient:
 
         payload, total = update_params_for_pagination(response, LIMIT_CARDS)
         loaded_cards = LIMIT_CARDS
-        logger.info(f'Карточек загружено {loaded_cards}')
+        logger.debug(f'Карточек загружено {loaded_cards}')
         while total >= LIMIT_CARDS:
             time.sleep(TIME_SLEEP_CARDS)
             resp = self._make_request(method='POST',
@@ -110,12 +110,12 @@ class WildberriesAPIClient:
             response['cards'].extend(resp['cards'])
 
             loaded_cards += total
-            logger.info(f'Карточек загружено {loaded_cards}')
+            logger.debug(f'Карточек загружено {loaded_cards}')
         return response['cards']
 
     def get_nm_ids(self) -> list:
         """Запрос WB артикулов товаров."""
-        logger.debug(f'Запрос WB артикулов товаров')
+        logger.info(f'Запрос WB артикулов товаров')
         cards_list_data = self.get_cards_list()
         df = pd.DataFrame(cards_list_data)
         cards_nm_id_lst = df['nmID'].unique().to_list()
@@ -123,7 +123,7 @@ class WildberriesAPIClient:
 
     def get_barcodes(self) -> list:
         """Запрос баркодов товаров."""
-        logger.debug(f'Запрос баркодов товаров')
+        logger.info(f'Запрос баркодов товаров')
         product_cards = self.get_cards_list()
         barcodes = []
         count = 0
@@ -138,7 +138,7 @@ class WildberriesAPIClient:
 
     def get_reports_list(self, ids: list):
         """Запрос на получение списка отчетов."""
-        logger.debug(f'Запрос на получение списка отчетов')
+        logger.info(f'Запрос на получение списка отчетов')
         endpoint = '/api/v2/nm-report/downloads'
         params = {
             'filter[downloadIds]': ids
@@ -152,7 +152,7 @@ class WildberriesAPIClient:
 
     def get_report_response(self, id: str):
         """Запрос на получение отчета."""
-        logger.debug(f'Запрос на получение отчета')
+        logger.info(f'Запрос на получение отчета')
         self.session.headers.update({
             'Content-Type': 'application/zip'
         })
@@ -168,7 +168,7 @@ class WildberriesAPIClient:
 
     def retry_create_report(self, id: str):
         """Запрос на повторную генерацию отчета."""
-        logger.debug(f'Запрос на повторную генерацию отчета')
+        logger.info(f'Запрос на повторную генерацию отчета')
         endpoint = '/api/v2/nm-report/downloads/retry'
         payload = {
             "downloadId": id
@@ -184,7 +184,7 @@ class WildberriesAPIClient:
         """Запрос на генерацию отчета."""
         endpoint = '/api/v2/nm-report/downloads'
         if report_type == 'stocks':
-            logger.debug(f'Запрос на генерацию отчета по остаткам поразмерно')
+            logger.info(f'Запрос на генерацию отчета по остаткам поразмерно')
             report_type = 'STOCK_HISTORY_REPORT_CSV'
             payload = {
                 'id': id,
@@ -212,7 +212,7 @@ class WildberriesAPIClient:
 
             }
         else:
-            logger.debug(f'Запрос на генерацию отчета по воронке продаж')
+            logger.info(f'Запрос на генерацию отчета по воронке продаж')
             report_type = 'DETAIL_HISTORY_REPORT'
             payload = {
                 'id': id,
@@ -237,7 +237,7 @@ class WildberriesAPIClient:
             logger_stock_type = 'FBW'
         elif stock_type == 'mp':
             logger_stock_type = 'FBS'
-        logger.debug(f'Запрос данных об остатках{logger_stock_type} по артикулам WB')
+        logger.info(f'Запрос данных об остатках{logger_stock_type} по артикулам WB')
 
         endpoint = '/api/v2/stocks-report/products/products'
         response = []
@@ -282,7 +282,7 @@ class WildberriesAPIClient:
             response.extend(items)
             time.sleep(TIME_SLEEP_REPORTS)
             count += len(response)
-            logger.info(f'Карточек загружено {count}')
+            logger.debug(f'Карточек загружено {count}')
 
             payload = {
                 'currentPeriod': {
@@ -320,7 +320,7 @@ class WildberriesAPIClient:
     def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str,
                          nm_ids=None) -> list:
         """Запрос данных о средней позиции в поиске."""
-        logger.debug(f'Запрос данных о средней позиции в поиске')
+        logger.info(f'Запрос данных о средней позиции в поиске')
         endpoint = '/api/v2/search-report/report'
         results = []
         offset = 0
@@ -361,7 +361,7 @@ class WildberriesAPIClient:
             results.extend(items)
             time.sleep(TIME_SLEEP_REPORTS)
             count += len(results)
-            logger.info(f'Карточек загружено {count}')
+            logger.debug(f'Карточек загружено {count}')
 
             payload = {
                 'currentPeriod': {
@@ -394,7 +394,7 @@ class WildberriesAPIClient:
 
     def get_prices(self):
         """Получение данных о ценах на товары."""
-        logger.debug(f'Получение данных о ценах на товары')
+        logger.info(f'Получение данных о ценах на товары')
         endpoint = '/api/v2/list/goods/filter'
         offset = 0
         result = []
@@ -418,7 +418,7 @@ class WildberriesAPIClient:
             result.extend(list_goods)
             time.sleep(TIME_SLEEP_PRICE)
             count += len(list_goods)
-            logger.info(f'Карточек загружено {count}')
+            logger.debug(f'Карточек загружено {count}')
 
             params = {
                 'limit': LIMIT_PRICE,

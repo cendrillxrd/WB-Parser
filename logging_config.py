@@ -41,7 +41,7 @@ def setup_logging():
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "console_fmt",
-                "level": "INFO"
+                "level": "DEBUG"
             },
             "file_debug": {
                 "class": "logging.handlers.RotatingFileHandler",
@@ -50,7 +50,7 @@ def setup_logging():
                 "maxBytes": MAX_BYTES,
                 "backupCount": BACK_UP_COUNT,
                 "encoding": "utf-8",
-                "level": "DEBUG"
+                "level": "INFO"
             },
             "file_errors": {
                 "class": "logging.handlers.RotatingFileHandler",
@@ -59,7 +59,7 @@ def setup_logging():
                 "maxBytes": MAX_BYTES,
                 "backupCount": BACK_UP_COUNT,
                 "encoding": "utf-8",
-                "level": "DEBUG"
+                "level": "INFO"
             }
         },
         "root": {

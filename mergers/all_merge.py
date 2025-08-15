@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def all_merge(info: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Объединение всех данных."""
-    logger.debug(f'Объединение всех данных')
+    logger.info(f'Объединение всех данных')
     funnel, fbs_df, fbw_df, avg_pos_today_df, avg_pos_month_df, characteristic_df, prices_df = info.values()
 
     funnel_fbw_fbs = merge_funnel_and_stock(funnel, fbs_df, fbw_df)

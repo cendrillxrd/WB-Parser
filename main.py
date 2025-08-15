@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    logger.debug(f'Запуск программы')
+    logger.info(f'Запуск программы')
     datacollector = WildberriesDataCollector()
     if is_sunday():
-        logger.debug(f'Обновление воронки продаж')
+        logger.info(f'Обновление воронки продаж')
         updater = InfoUpdater(f'{FILE_PATH}Воронка продаж.csv')
         updater.update_info()
     datacollector.save_info()
-    logger.debug(f'Данные успешно загружены')
+    logger.info(f'Данные успешно загружены')
 
 
 if __name__ == "__main__":
