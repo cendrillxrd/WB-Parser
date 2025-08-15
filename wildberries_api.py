@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Literal, Optional
 
 import pandas as pd
 import requests
@@ -11,6 +11,7 @@ from logging_config import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
+logging.getLogger("urllib3").propagate = False
 
 LIMIT_CARDS = 100  # <= 100
 LIMIT_STOCKS = 1000  # <= 1000
@@ -37,7 +38,7 @@ class WildberriesAPIClient:
             endpoint: str,
             params: Optional[Dict] = None,
             payload: Optional[Dict] = None,
-            retries: int = 5) -> Union[Dict, bytes]:
+            retries: int = 5):
         """Делает запрос по API."""
         url = f'{self.base_url[url_key]}{endpoint}'
         logger.info(f'Выполнение запроса по адресу {url}')
@@ -60,7 +61,7 @@ class WildberriesAPIClient:
 
             except requests.exceptions.HTTPError as err:
                 logger.info(f'Запрос не удался, ошибка {err.response.status_code}'
-                             f'Попытка {attempt + 1}/{retries}')
+                            f'Попытка {attempt + 1}/{retries}')
                 if err.response.status_code in (429, 500, 502, 503, 504):
                     wait_time = min(2 ** attempt, 10)
                     logger.debug(f"Retrying in {wait_time} seconds...")
@@ -234,9 +235,9 @@ class WildberriesAPIClient:
         """Запрос данных об остатках по артикулам WB."""
         logger_stock_type = ''
         if stock_type == 'wb':
-            logger_stock_type = 'FBW'
+            logger_stock_type = ' FBW'
         elif stock_type == 'mp':
-            logger_stock_type = 'FBS'
+            logger_stock_type = ' FBS'
         logger.info(f'Запрос данных об остатках{logger_stock_type} по артикулам WB')
 
         endpoint = '/api/v2/stocks-report/products/products'
@@ -281,7 +282,7 @@ class WildberriesAPIClient:
             offset += LIMIT_STOCKS
             response.extend(items)
             time.sleep(TIME_SLEEP_REPORTS)
-            count += len(response)
+            count += len(items)
             logger.debug(f'Карточек загружено {count}')
 
             payload = {
@@ -360,7 +361,7 @@ class WildberriesAPIClient:
             offset += LIMIT_AVG_POS
             results.extend(items)
             time.sleep(TIME_SLEEP_REPORTS)
-            count += len(results)
+            count += len(items)
             logger.debug(f'Карточек загружено {count}')
 
             payload = {

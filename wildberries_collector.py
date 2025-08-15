@@ -3,7 +3,7 @@ import time
 import uuid
 import logging
 from datetime import datetime
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal
 
 import pandas as pd
 import pytz
@@ -25,6 +25,7 @@ from wildberries_api import WildberriesAPIClient
 from config import FILE_PATH
 from logging_config import setup_logging
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 REPORT_TEMP = 5
@@ -52,8 +53,7 @@ class WildberriesDataCollector:
         """Сохраняет таблицы в csv файл."""
         info = self.collect_daily_stats()
         for key, value in info.items():
-            # file_name = f'{FILE_PATH}{key}.csv'
-            file_name = f'{key}.csv'
+            file_name = f'{FILE_PATH}{key}.csv'
             if is_csv_empty(file_name):
                 value.to_csv(file_name, index=False, encoding='cp1251')
             else:
