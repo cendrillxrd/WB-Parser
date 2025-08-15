@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, Literal, Optional
+from typing import Dict, Literal, Optional, List
 
 import pandas as pd
 import requests
@@ -231,8 +231,41 @@ class WildberriesAPIClient:
                            payload=payload,
                            endpoint=endpoint)
 
-    def get_stocks(self, start_date: str, end_date: str, stock_type: Literal['', 'wb', 'mp'], nm_ids=None) -> list:
-        """Запрос данных об остатках по артикулам WB."""
+    def get_stocks(self, start_date: str, end_date: str, stock_type: Literal['', 'wb', 'mp'],
+                   nm_ids: Optional[List] = None) -> list:
+        """
+        Запрос данных об остатках по артикулам WB.
+
+        Запрос данных об остатках FBS, FBW по артикулам WB.
+        Например:
+        {
+            "nmID": 123456789,
+            "isDeleted": false,
+            "subjectName": "Принтеры",
+            "name": "Печатник 3000",
+            ...
+            "stockCount": 50,
+            "stockSum": 50000,
+            ...
+            "toClientCount": 20,
+            "fromClientCount": 30,
+            ...
+            "availability": "deficient"
+            }
+        }
+
+        Args:
+            start_date (int): Дата начала периода. Не позднее end. Не ранее 3 месяцев от текущей даты
+            end_date (str): Дата окончания периода. Не ранее 3 месяцев от текущей даты
+            stock_type (Literal['', 'wb', 'mp']): Тип складов хранения товаров:
+                                                    "" — все
+                                                    wb — FBW
+                                                    mp — FBS
+            nm_ids (Optional[List]): Список артикулов WB, по умолчанию None.
+
+        Returns:
+            list: Список словарей с информацией о товарах
+        """
         logger_stock_type = ''
         if stock_type == 'wb':
             logger_stock_type = ' FBW'
@@ -318,9 +351,50 @@ class WildberriesAPIClient:
             items = resp['data']['items']
         return response
 
-    def get_avg_position(self, currentStartDate: str, currentEndDate: str, pastStartDate: str, pastWndDate: str,
-                         nm_ids=None) -> list:
-        """Запрос данных о средней позиции в поиске."""
+    def get_avg_position(self, current_start_date: str, current_end_date: str, past_start_date: str, past_end_date: str,
+                         nm_ids: Optional[List] = None) -> List:
+        """
+           Запрос данных о средней позиции в поиске.
+
+           Запрашивает данные по поисковым запросам с:
+                - общей информацией
+                - позициями товаров
+                - данными по видимости и переходам в карточку
+                - данными для таблицы по группам
+           Например:
+            {
+            ----"subjectName": "Phones",
+            ----"subjectId": 50,
+            ----"brandName": "Apple",
+            ----"tagName": "phones",
+            ----"tagId": 65,
+            ----"metrics": {
+            --------------------"avgPosition": {
+            --------------------"current": 5,
+            --------------------"dynamics": 50
+            --------------------},
+            --------------------...
+            ----------------},
+            ----"items": [
+            ----------------{
+            ----------------"nmId": 268913787,
+            ----------------"name": "iPhone 13 256 ГБ Серебристый",
+            ----------------"vendorCode": "wb3ha2668w",
+            ----------------"subjectName": "Смартфоны",
+            ----------------...
+            ----------------}
+            ------------]
+            }
+           Args:
+               current_start_date (str): Дата начала текущего периода. Не позднее end. Не ранее 365 суток от сегодня
+               current_end_date (str): Дата окончания текущего периода. Не ранее 365 суток от сегодня
+               past_start_date (str): Дата начала прошлого периода. Не позднее end. Не ранее 365 суток от сегодня
+               past_end_date (str): Дата окончания прошлого периода. Не ранее 365 суток от сегодня
+               nm_ids (Optional[List]): Список артикулов WB, по умолчанию None.
+
+           Returns:
+               list: Список словарей с информацией о товарах.
+           """
         logger.info(f'Запрос данных о средней позиции в поиске')
         endpoint = '/api/v2/search-report/report'
         results = []
@@ -328,12 +402,12 @@ class WildberriesAPIClient:
         count = 0
         payload = {
             'currentPeriod': {
-                'start': currentStartDate,
-                'end': currentEndDate
+                'start': current_start_date,
+                'end': current_end_date
             },
             'pastPeriod': {
-                'start': pastStartDate,
-                'end': pastWndDate
+                'start': past_start_date,
+                'end': past_end_date
             },
             'positionCluster': 'all',
             'orderBy': {
@@ -366,12 +440,12 @@ class WildberriesAPIClient:
 
             payload = {
                 'currentPeriod': {
-                    'start': currentStartDate,
-                    'end': currentEndDate
+                    'start': current_start_date,
+                    'end': current_end_date
                 },
                 'pastPeriod': {
-                    'start': pastStartDate,
-                    'end': pastWndDate
+                    'start': past_start_date,
+                    'end': past_end_date
                 },
                 'positionCluster': 'all',
                 'orderBy': {
@@ -393,8 +467,32 @@ class WildberriesAPIClient:
             groups = resp['data']['groups']
         return results
 
-    def get_prices(self):
-        """Получение данных о ценах на товары."""
+    def get_prices(self) -> list[dict]:
+        """
+           Запрос данных о ценах на товары.
+
+           Запрашивает данные о товарах по их артикулам: цены, валюту, общие скидки и скидки для WB Клуба.
+           Например:
+            {
+                    "nmID": 98486,
+                    "vendorCode": "07326060",
+                    "sizes": [
+                                {
+                                    "sizeID": 3123515574,
+                                    "price": 500,
+                                    "discountedPrice": 350,
+                                    "clubDiscountedPrice": 332.5,
+                                    "techSizeName": "42"
+                                }
+                    ],
+                    "currencyIsoCode4217": "RUB",
+                    "discount": 30,
+                    "clubDiscount": 5,
+                    "editableSizePrice": true
+                }
+           Returns:
+               list[dict]: Список словарей в которых хранится информация о товарах.
+           """
         logger.info(f'Получение данных о ценах на товары')
         endpoint = '/api/v2/list/goods/filter'
         offset = 0
