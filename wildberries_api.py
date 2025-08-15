@@ -31,15 +31,30 @@ class WildberriesAPIClient:
 
     def _make_request(
             self,
-            api_type: str,
+            api_type: Literal['Analytics_Statistics_API_KEY', 'Content_Marketplace_API_KEY',
+                              'Price_discount_API_KEY'],
             url_key: Literal['suppliers', 'content', 'seller-analytics', 'statistics',
                              'marketplace', 'dp-calendar', 'discounts-prices'],
-            method: str,
+            method: Literal['GET', 'POST'],
             endpoint: str,
             params: Optional[Dict] = None,
             payload: Optional[Dict] = None,
             retries: int = 5):
-        """Делает запрос по API."""
+        """
+            Делает запрос по API.
+
+            Args:
+                api_type (str): Тип апи ключа.
+                url_key (str): Тип URL адреса запроса.
+                method (str): Метод API запроса.
+                endpoint (str): Эндпоинт запроса
+                params (Optional[Dict]): Параметры запроса, по умолчанию None
+                payload (Optional[Dict]): Данные, передаваемые в POST запрос, по умолчанию None
+                retries (int): Количество попыток для повторения запроса, по умолчанию 5
+
+            Returns:
+                Возвращает либо словарь с данными или ZIP файл
+            """
         url = f'{self.base_url[url_key]}{endpoint}'
         logger.info(f'Выполнение запроса по адресу {url}')
 
@@ -77,8 +92,23 @@ class WildberriesAPIClient:
 
         return None
 
-    def get_cards_list(self) -> list:
-        """Запрос карточек товаров."""
+    def get_cards_list(self) -> list[dict]:
+        """
+           Запрос карточек товаров.
+           Например
+           {
+            "nmID": 12345678,
+            "imtID": 123654789,
+            "nmUUID": "01bda0b1-5c0b-736c-b2be-d0a6543e9be",
+            "subjectID": 7771,
+            "subjectName": "AKF системы",
+            "vendorCode": "wb7f6mumjr1",
+            "brand": "Тест",
+            ...
+            }
+           Returns:
+               list[dict]: Список словарей в которых хранится информация о товарах.
+           """
         logger.info(f'Запрос карточек товаров')
         endpoint = '/content/v2/get/cards/list'
         payload = {
@@ -137,8 +167,18 @@ class WildberriesAPIClient:
                 count += 1
         return barcodes
 
-    def get_reports_list(self, ids: list):
-        """Запрос на получение списка отчетов."""
+    def get_reports_list(self, ids: list) -> dict:
+        """
+        Запрос на получение списка отчетов.
+
+        Используется для получения статуса созданных отчетов.
+
+        Args:
+            ids (list): список состоящий из ID отчётов в UUID-формате.
+
+        Returns:
+            ZIP-FILE в котором лежит CSV файл отчета
+        """
         logger.info(f'Запрос на получение списка отчетов')
         endpoint = '/api/v2/nm-report/downloads'
         params = {
@@ -152,7 +192,17 @@ class WildberriesAPIClient:
         return response
 
     def get_report_response(self, id: str):
-        """Запрос на получение отчета."""
+        """
+        Запрос на получение отчета.
+
+        После удачной генерации отчета (статус SUCCESS) делает запрос на получение созданного отчета.
+
+        Args:
+            id (str): ID отчёта в UUID-формате.
+
+        Returns:
+            ZIP-FILE в котором лежит CSV файл отчета
+        """
         logger.info(f'Запрос на получение отчета')
         self.session.headers.update({
             'Content-Type': 'application/zip'
@@ -168,7 +218,14 @@ class WildberriesAPIClient:
         return response
 
     def retry_create_report(self, id: str):
-        """Запрос на повторную генерацию отчета."""
+        """
+            Запрос на повторную генерацию отчета.
+
+            В случае статуса FAILED при генерации отчета делает запрос на повторную генерацию отчета
+
+            Args:
+                id (str): ID отчёта в UUID-формате.
+            """
         logger.info(f'Запрос на повторную генерацию отчета')
         endpoint = '/api/v2/nm-report/downloads/retry'
         payload = {
@@ -181,8 +238,19 @@ class WildberriesAPIClient:
                            endpoint=endpoint)
 
     def create_report(self, id: str, start_date: str, end_date: str, report_type: Literal['stocks', 'funnel'],
-                      skip_deleted_nm=True):
-        """Запрос на генерацию отчета."""
+                      skip_deleted_nm: bool = True):
+        """
+        Запрос на генерацию отчета.
+
+        Запрос на генерацию отчета с расширенной аналитикой продавца по воронке продаж или остаткам в виде csv файла.
+
+        Args:
+            id (str): ID отчёта в UUID-формате.
+            start_date (str): Начало периода.
+            end_date (str): Второе значение, что оно означает.
+            report_type (str): Тип отчёта (Воронка продаж или Остатки)
+            skip_deleted_nm (bool): Скрыть удалённые карточки товаров, по умолчанию None
+        """
         endpoint = '/api/v2/nm-report/downloads'
         if report_type == 'stocks':
             logger.info(f'Запрос на генерацию отчета по остаткам поразмерно')
@@ -239,25 +307,25 @@ class WildberriesAPIClient:
         Запрос данных об остатках FBS, FBW по артикулам WB.
         Например:
         {
-            "nmID": 123456789,
-            "isDeleted": false,
-            "subjectName": "Принтеры",
-            "name": "Печатник 3000",
-            ...
-            "stockCount": 50,
-            "stockSum": 50000,
-            ...
-            "toClientCount": 20,
-            "fromClientCount": 30,
-            ...
-            "availability": "deficient"
-            }
+        ----"nmID": 123456789,
+        ----"isDeleted": false,
+        ----"subjectName": "Принтеры",
+        ----"name": "Печатник 3000",
+        ----...
+        ----"stockCount": 50,
+        ----"stockSum": 50000,
+        ----...
+        ----"toClientCount": 20,
+        ----"fromClientCount": 30,
+        ----...
+        ----"availability": "deficient"
+        ----}
         }
 
         Args:
             start_date (int): Дата начала периода. Не позднее end. Не ранее 3 месяцев от текущей даты
             end_date (str): Дата окончания периода. Не ранее 3 месяцев от текущей даты
-            stock_type (Literal['', 'wb', 'mp']): Тип складов хранения товаров:
+            stock_type (str): Тип складов хранения товаров:
                                                     "" — все
                                                     wb — FBW
                                                     mp — FBS
@@ -370,8 +438,8 @@ class WildberriesAPIClient:
             ----"tagId": 65,
             ----"metrics": {
             --------------------"avgPosition": {
-            --------------------"current": 5,
-            --------------------"dynamics": 50
+            ------------------------------------"current": 5,
+            ------------------------------------"dynamics": 50
             --------------------},
             --------------------...
             ----------------},
@@ -474,22 +542,22 @@ class WildberriesAPIClient:
            Запрашивает данные о товарах по их артикулам: цены, валюту, общие скидки и скидки для WB Клуба.
            Например:
             {
-                    "nmID": 98486,
-                    "vendorCode": "07326060",
-                    "sizes": [
-                                {
-                                    "sizeID": 3123515574,
-                                    "price": 500,
-                                    "discountedPrice": 350,
-                                    "clubDiscountedPrice": 332.5,
-                                    "techSizeName": "42"
-                                }
-                    ],
-                    "currencyIsoCode4217": "RUB",
-                    "discount": 30,
-                    "clubDiscount": 5,
-                    "editableSizePrice": true
-                }
+            --------"nmID": 98486,
+            --------"vendorCode": "07326060",
+            --------"sizes": [
+            --------------------{
+            ------------------------"sizeID": 3123515574,
+            ------------------------"price": 500,
+            ------------------------"discountedPrice": 350,
+            ------------------------"clubDiscountedPrice": 332.5,
+            ------------------------"techSizeName": "42"
+            --------------------}
+            --------],
+            --------"currencyIsoCode4217": "RUB",
+            --------"discount": 30,
+            --------"clubDiscount": 5,
+            --------"editableSizePrice": true
+            ----}
            Returns:
                list[dict]: Список словарей в которых хранится информация о товарах.
            """
