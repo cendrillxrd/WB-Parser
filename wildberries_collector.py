@@ -87,7 +87,7 @@ class WildberriesDataCollector:
             current_start_date, current_end_date, past_start_date, past_end_date = get_last_two_months()
             avg_pos_list = self.api.get_avg_position(current_start_date, current_end_date, past_start_date,
                                                      past_end_date, nm_ids)  # период Месяц
-            logger.info(f'Данные о средней позиции в поиске за день загружены')
+            logger.info(f'Данные о средней позиции в поиске за месяц загружены')
         avg_pos_df = convert_get_avg_position_to_df(avg_pos_list, period)
         return avg_pos_df
 
