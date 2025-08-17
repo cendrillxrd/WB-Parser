@@ -103,7 +103,7 @@ class WildberriesDataCollector:
         logger.info(f'Ожидание создания отчета.')
         tries = 0
         while tries < WAITING_OF_ANALYTICS_REPORT_TRIES:
-            logger.debug(f'Попытка {tries}/{WAITING_OF_ANALYTICS_REPORT_TRIES}')
+            logger.debug(f'Попытка {tries+1}/{WAITING_OF_ANALYTICS_REPORT_TRIES}')
             time.sleep(TIME_SLEEP)
             reports = self.api.get_reports_list([id])
             report_status = get_analytics_report_status(reports)

@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class InfoUpdater:
-    def __init__(self, file_path):
+    def __init__(self, file_path: str, collector: WildberriesDataCollector):
         self.file_path = file_path
         self.previous_funnel = pd.read_csv(file_path, encoding='cp1251')
-        self.collector = WildberriesDataCollector()
+        self.collector = collector
 
     def get_last_two_week_dates(self) -> list[str]:
         """Возвращает последние 14 дат из таблицы. Если дат меньше, вернет все, что есть."""

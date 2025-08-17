@@ -15,7 +15,7 @@ def main():
     datacollector = WildberriesDataCollector()
     if is_sunday():
         logger.info(f'Обновление воронки продаж')
-        updater = InfoUpdater(f'{FILE_PATH}Воронка продаж.csv')
+        updater = InfoUpdater(f'{FILE_PATH}Воронка продаж.csv', datacollector)
         updater.update_info()
     datacollector.save_info()
     logger.info(f'Данные успешно загружены')
